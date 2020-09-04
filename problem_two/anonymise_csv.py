@@ -1,47 +1,46 @@
-import unicodecsv as csv
+import csv
 
-from faker import Factory
 from collections import defaultdict
+from faker import Factory
 
 
-def anonymize_rows(rows):
-    """
-    Rows is an iterable of dictionaries that contain name and
-    email fields that need to be anonymised.
-    """
-    # Load faker
-    faker = Factory.create()
+class Anonymise(object):
+    @staticmethod
+    def anonymise_rows(rows):
+        """
 
-    # Create mappings of names, emails, social security numbers, and phone numbers to faked names & emails.
-    names = defaultdict(faker.name)
-    emails = defaultdict(faker.email)
-    ssns = defaultdict(faker.ssn)
-    phone_numbers = defaultdict(faker.phone_number)
+        :param rows:
+        :return:
+        """
+        fake = Factory.create('en_AU')
 
-    # Iterate over the rows from the file and yield anonymised rows.
-    for row in rows:
-        # Replace name and email fields with faked fields.
-        row["name"] = names[row["name"]]
-        row["email"] = emails[row["email"]]
-        row["ssn"] = ssns[row["ssn"]]
-        row["phone_number"] = phone_numbers[row["phone_number"]]
+        first_name = defaultdict(fake.first_name)
+        last_name = defaultdict(fake.last_name)
+        address = defaultdict(fake.address)
 
-        # Yield the row back to the caller
-        yield row
+        for row in rows:
+            row["first_name"] = first_name[row["first_name"]]
+            row["last_name"] = last_name[row["last_name"]]
+            row["address"] = address[row["address"]]
 
+            yield row
 
-def anonymize(source, target):
-    """
-    The source argument is a path to a CSV file containing data to anonymize,
-    while target is a path to write the anonymised CSV data to.
-    """
-    with open(source, 'rU') as f:
-        with open(target, 'w') as o:
-            # Use the DictReader to easily extract fields
-            reader = csv.DictReader(f)
-            writer = csv.DictWriter(o, reader.fieldnames)
+    @staticmethod
+    def anonymise(source, target):
+        """
+        The source argument is a path to a CSV file containing data to anonymize,
+        while target is a path to write the anonymised CSV data to.
+        :param source:
+        :param target:
+        :return:
+        """
+        f = open(source, 'r')
+        o = open(target, 'w')
+        # Use the DictReader to easily extract fields
+        reader = csv.DictReader(f)
+        r = ['first_name', 'last_name', 'address', 'date_of_birth']
+        writer = csv.DictWriter(o, reader.fieldnames)
 
-            # Read and anonymize data, writing to target file.
-            for row in anonymize_rows(reader):
-                writer.writerow(row)
-
+        # Read and anonymize data, writing to target file.
+        for row in Anonymise.anonymise_rows(reader):
+            writer.writerow(row)

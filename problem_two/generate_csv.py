@@ -1,27 +1,35 @@
-import csv
-import datetime
 from faker import Faker
+from pyspark.sql.functions import regexp_replace, col
+from pyspark.sql.types import *
 
-RECORD_COUNT = 1000000
-fake = Faker()
+from constants import spark_session
 
 
-def create_csv_file():
-    with open('data/people.csv', 'w', newline='') as csv_file:
-        field_names = ['first_name', 'last_name', 'email', 'address', 'city', 'state', 'country', 'date_of_birth']
-        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+class Person(object):
+    @staticmethod
+    def generate_csv(n):
+        """
 
-        writer.writeheader()
-        for i in range(RECORD_COUNT):
-            writer.writerow(
+        :param n:
+        :return:
+        """
+        fake = Faker('en_AU')
+        data = []
+        for _ in range(n):
+            data.append(
                 {
-                    'first_name': fake.name(),
-                    'last_name': fake.name(),
-                    'email': fake.email(),
-                    'address': fake.street_address(),
-                    'city': fake.city(),
-                    'state': fake.state(),
-                    'country': fake.country(),
-                    'date_of_birth': fake.date(pattern="%d-%m-%Y", end_datetime=datetime.date(2000, 1, 1))
+                    "first_name": str(fake.first_name()),
+                    "last_name": str(fake.last_name()),
+                    "address": str(fake.address()),
+                    "date_of_birth": str(fake.date_of_birth())
                 }
             )
+
+        people_rdd = spark_session.sparkContext.parallelize(data)
+        people_df = spark_session.read.json(people_rdd)
+        people_schema = people_df \
+            .withColumn("first_name", people_df["first_name"].cast(StringType())) \
+            .withColumn("last_name", people_df["last_name"].cast(StringType())) \
+            .withColumn('address', regexp_replace(col("address"), "\n", " ")) \
+            .withColumn("date_of_birth", people_df["date_of_birth"].cast(DateType()))
+        return people_schema

@@ -1,14 +1,8 @@
-from time import time
-
-from problem_two.generate_csv import create_csv_file
+from constants import PATH
+from problem_two.generate_csv import Person
 
 if __name__ == '__main__':
-    start = time()
-    create_csv_file()
-    elapsed = time() - start
-    print('created csv file time: {}'.format(elapsed))
+    write_raw_csv = Person.generate_csv(5)
+    write_raw_csv.repartition(1).write.format('com.databricks.spark.csv').mode('overwrite').save(PATH + "persons_raw", header=True)
 
-    start = time()
 
-    elapsed = time() - start
-    print('got totals time: {}'.format(elapsed))
